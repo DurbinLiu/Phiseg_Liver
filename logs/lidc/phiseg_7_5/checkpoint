@@ -1,0 +1,2 @@
+model_checkpoint_path: "E:\\bishe_durbin\\46-PHiSeg-code-master-paper355\\logs\\lidc\\phiseg_7_5\\model.ckpt-499500"
+all_model_checkpoint_paths: "E:\\bishe_durbin\\46-PHiSeg-code-master-paper355\\logs\\lidc\\phiseg_7_5\\model.ckpt-499500"
