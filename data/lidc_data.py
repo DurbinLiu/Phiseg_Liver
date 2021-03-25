@@ -68,21 +68,21 @@ if __name__ == '__main__':
     print('DEBUGGING OUTPUT')
     print('training')
     for ii in range(2):
-        X_tr, Y_tr = data.train.next_batch(10)
+        X_tr, Y_tr = data.train.next_batch(4)
         print(np.mean(X_tr))
         print(Y_tr.shape)
         print('--')
 
     print('test')
     for ii in range(2):
-        X_te, Y_te = data.test.next_batch(10)
+        X_te, Y_te = data.test.next_batch(2)
         print(np.mean(X_te))
         print(Y_te.shape)
         print('--')
 
     print('validation')
     for ii in range(2):
-        X_va, Y_va = data.validation.next_batch(10)
+        X_va, Y_va = data.validation.next_batch(2)
         print(np.mean(X_va))
         print(Y_va.shape)
         print('--')
