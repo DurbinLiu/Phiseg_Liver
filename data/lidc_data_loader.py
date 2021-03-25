@@ -61,9 +61,17 @@ def prepare_data(input_file, output_file):
     new_data = pickle.loads(bytes_in)
     data.update(new_data)
 
+    print('lidc_data:---')
+    print(data)
+
     series_uid = []
 
     for key, value in data.items():
+        print('')
+        print('key : ',key)
+        print('image shape : ',value['image'].shape)
+        print('masks[0] shape : ',value['masks'][0].shape)
+        print('')
         series_uid.append(value['series_uid'])
 
     unique_subjects = np.unique(series_uid)
@@ -124,7 +132,10 @@ def load_and_maybe_process_data(input_file,
     :return: Returns an h5py.File handle to the dataset
     '''
 
-    data_file_name = 'data_lidc.hdf5'
+    # todo 换数据集
+    #data_file_name = 'data_lidc.hdf5'
+    data_file_name = 'data_liver_128_128.hdf5'
+    #data_file_name = 'data_liver_512_512.hdf5'
 
     data_file_path = os.path.join(preprocessing_folder, data_file_name)
 
@@ -136,14 +147,15 @@ def load_and_maybe_process_data(input_file,
         prepare_data(input_file, data_file_path)
     else:
         logging.info('Already preprocessed this configuration. Loading now!')
+        print('Using the dataset: ',data_file_name)
 
     return h5py.File(data_file_path, 'r')
 
 
 if __name__ == '__main__':
 
-    input_file = '/itet-stor/baumgach/bmicdatasets-originals/Originals/LIDC-IDRI/data_lidc.pickle'
-    preprocessing_folder = '/srv/glusterfs/baumgach/preproc_data/lidc'
+    input_file = 'E:\\bishe_durbin\data_lidc.pickle'
+    preprocessing_folder = '/data/preproc_data/lidc'
 
     d = load_and_maybe_process_data(input_file, preprocessing_folder, force_overwrite=True)
 

@@ -47,62 +47,61 @@ def find_subset_for_id(ids_dict, id):
 def get_datasets(imgs_dir, groundTruth_dir):
 
     # 图像原始数量、通道数、高、宽
-    Nimgs = 20
+    Nimgs = 400
     channels = 1 #3
     height = 512  # 584
     width = 512  # 565
-    num_labels_per_subject = 1  #几个人标记的
+    num_labels_per_subject = 4  #几个人标记的
+    target_size = (128,128)# 使图像  (512,512)->(128,128)方便训练
+    #target_size = (512,512)# todo 原图
 
     data = {}
-    list_data = []
-    series_uid = 0
-   #imgs = np.empty((Nimgs, height, width, channels)) #原来的
+    # imgs = np.empty((Nimgs, height, width, channels)) #原来的
     imgs = np.empty((Nimgs, height, width))
-    groundTruth = np.empty((Nimgs, num_labels_per_subject, height, width))
 
     for path, subdirs, files in os.walk(imgs_dir):  # list all files, directories in the path
         for i in range(len(files)):
             new_data = {}
-            # original
+
+            # 创建groundTruth列表并初始化
+            groundTruth = []
+
             print("original image: ", files[i])
             series_uid = i
-            img = Image.open(os.path.join(imgs_dir,files[i]))
+            img = Image.open(os.path.join(imgs_dir, files[i]))
+            img = img.convert('L')  # 自己加的，转成灰度图(512,512,3)->(512,512)
             #img.show()
-            img = img.convert('L') #自己加的，转成灰度图(512,512,3)->(512,512)
+
+            # 展示resize后的原图
+            img = img.resize(target_size)
             #img.show()
-            print("img.shape")
-            imgs[i] = np.asarray(img )
-            #imgs[i] = np.asarray(img).reshape((height, width, channels)) #自己加的，加了一个通道
-            #img[i]  #自加，增加数组维度
+
+            imgs2 = np.asarray(img,dtype = float)/255   # 参考他的 归一化
+            print("img2 shape ：", imgs2.shape)
+
 
             # corresponding ground truth
             groundTruth_name = files[i]
             print("ground truth name: ", groundTruth_name)
             g_truth = Image.open(os.path.join(groundTruth_dir, groundTruth_name))
+            g_truth = g_truth.resize(target_size)
             #g_truth.show()
-            groundTruth[i][0] = np.asarray(g_truth,dtype = np.uint8)  #TODO 实际上是指定了第i张图片的第一维为0， 强行搞了四维，降了之后成为三维
-            ground = groundTruth[i][0]
-            ground = ground[np.newaxis,...]
-            print('ground',ground.shape)
+            for j in range(num_labels_per_subject):
+                #groundTruth.append(np.asarray(g_truth, dtype=np.uint8))  # TODO 0表示第一个列表元素是这个掩膜数组，实际上有多个label之后，这里要改]
+                groundTruth.append(np.asarray(g_truth, dtype=np.float)/255)
 
-            #list_data = [('images',imgs[i]), ("masks",groundTruth[i]), ('series_uid',series_uid) ]
-            list_data = [ ('image', imgs[i]), ("masks", ground) , ('series_uid', series_uid)]  #groundtruth[i]
+            print('groundTruth shape : ', groundTruth[0].shape)
+            print('groundTruth 长度：', len(groundTruth))
+
+            list_data = [('image', imgs2), ("masks", groundTruth), ('series_uid', series_uid),("pixel_spacing",['0.714','0.714'])]
             new_data[series_uid] = dict(list_data)
 
             data.update(new_data)
 
     print("imgs max: ", str(np.max(imgs)))
     print("imgs min: ", str(np.min(imgs)))
-    assert (np.max(groundTruth) == 255 ) #and np.max(border_masks) == 255)
-    assert (np.min(groundTruth) == 0 )   #and np.min(border_masks) == 0)
-    print("ground truth and border masks are correctly withih pixel value range 0-255 (black-white)")
 
-    # assert (imgs.shape == (Nimgs, height, width, channels))
-    # groundTruth = np.reshape(groundTruth, (Nimgs, height, width, 1))
-    # assert (groundTruth.shape == (Nimgs, height, width, 1))
 
-    print('data:---')
-    print(data)
     return data
 
 
@@ -117,6 +116,9 @@ def prepare_data(imgs_dir,groundTruth_dir, output_file):
     data = {}
 
     data = get_datasets(imgs_dir, groundTruth_dir) #得到 data 字典
+
+    print('data:---')
+    print(data)
 
     series_uid = []
 
@@ -157,7 +159,7 @@ def prepare_data(imgs_dir,groundTruth_dir, output_file):
         lbl = np.asarray(value['masks'])  # this will be of shape 4 x 128 x 128  4表示4个experts？
 
 
-        #lbl = lbl.transpose((0,1))  #
+        #lbl = lbl[np.newaxis, : , :]  # todo 这句是我加的下句是本来的
         lbl = lbl.transpose((1,2,0)) #（channels,imagesize,imagesize）转化为（imagesize,imagesize,channels）
         #关于这个转置函数：https://blog.csdn.net/u012762410/article/details/78912667
 
@@ -182,43 +184,17 @@ def prepare_data(imgs_dir,groundTruth_dir, output_file):
     hdf5_file.close()
 
 
-def load_and_maybe_process_data(input_file,
-                                preprocessing_folder,
-                                force_overwrite=False):
-    '''
-    This function is used to load and if necessary preprocesses the LIDC challenge data
-
-    :param input_folder: Folder where the raw ACDC（实际上是lidc数据，pickle文件） challenge data is located
-    :param preprocessing_folder: Folder where the proprocessed data (hdf5文件) should be written to
-    :param force_overwrite: Set this to True if you want to overwrite already preprocessed data [default: False]
-
-    :return: Returns an h5py.File handle to the dataset  返回一个h5py文件处理句柄
-    '''
-
-    data_file_name = 'data_lidc.hdf5'
-
-    data_file_path = os.path.join(preprocessing_folder, data_file_name)
-
-    utils.makefolder(preprocessing_folder)
-
-    if not os.path.exists(data_file_path) or force_overwrite:
-        logging.info('This configuration of mode, size and target resolution has not yet been preprocessed')
-        logging.info('Preprocessing now!')
-        prepare_data(input_file, data_file_path)
-    else:
-        logging.info('Already preprocessed this configuration. Loading now!')
-
-    return h5py.File(data_file_path, 'r')  #返回一个h5py文件处理句柄
-
 
 if __name__ == '__main__':
 
-    imgs_dir = "C:\\Users\\123\Desktop\\bishe\Others\ganzang\data\\val\image"
-    groundTruth_dir = "C:\\Users\\123\Desktop\\bishe\Others\ganzang\data\\val\label"
+    imgs_dir = "E:\\bishe_durbin\Others\ganzang\data\\train\image"
+    groundTruth_dir = "E:\\bishe_durbin\Others\ganzang\data\\train\label"
 
-    preprocessing_folder = 'G:\\bishe\preproc_data\lidc'
+    preprocessing_folder = 'E:\\bishe_durbin\\46-PHiSeg-code-master-paper355\data\preproc_data\lidc'
 
-    data_file_name = 'data_liver.hdf5'
+    # todo
+    data_file_name = 'data_liver_128_128.hdf5'
+    #data_file_name = 'data_liver_512_512.hdf5'
 
     outfile = os.path.join(preprocessing_folder, data_file_name)
     #直接强制prepare_data了
