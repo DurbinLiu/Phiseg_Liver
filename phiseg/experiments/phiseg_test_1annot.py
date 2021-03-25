@@ -2,7 +2,7 @@ from phiseg.model_zoo import likelihoods, posteriors, priors
 import tensorflow as tf
 from tfwrapper import normalisation as tfnorm
 
-experiment_name = 'phiseg_test_1_128_128' #决定了模型存在哪个文件夹里
+experiment_name = 'phiseg_test_1annot_128_128' #决定了模型存在哪个文件夹里
 log_dir_name = 'liver' #'lidc'
 
 # architecture
@@ -48,8 +48,8 @@ optimizer = tf.train.AdamOptimizer
 lr_schedule_dict = {0: 1e-3}
 deep_supervision = True
 batch_size = 4 #12
-num_iter = 50000
-annotator_range = range(num_labels_per_subject)  # which annotators to actually use for training,这里是全用
+num_iter = 200000
+annotator_range = [0]  # which annotators to actually use for training,这里只用第一个
 
 # losses
 KL_divergence_loss_weight = 1.0
