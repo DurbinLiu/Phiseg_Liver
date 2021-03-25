@@ -39,7 +39,10 @@ if __name__ == '__main__':
     config_file = args.EXP_PATH
 
     #直接配置
-    config_file = "phiseg/experiments/phiseg_7_5.py"
+    #config_file = "phiseg/experiments/phiseg_7_5.py"
+    #config_file = "phiseg/experiments/phiseg_test_1annot_512.py"
+    config_file = "phiseg/experiments/phiseg_test_1annot.py"
+
     config_module = config_file.split('/')[-1].rstrip('.py')
 
     exp_config = SourceFileLoader(config_module, config_file).load_module()  # 这是个什么鬼玩意，有问题啊。。
